@@ -10,16 +10,13 @@ license:             MIT
 license-file:        LICENSE
 author:              exergasia
 maintainer:          exergasia.expolitio.repetition@gmail.com
--- copyright:           
+copyright:           2014 exergasia
 category:            Data
 build-type:          Simple
--- extra-source-files:  
 cabal-version:       >=1.10
 
 library
-  -- exposed-modules:     
-  -- other-modules:       
-  -- other-extensions:    
-  build-depends:       base >=4.7 && <4.8
-  -- hs-source-dirs:      
+  exposed-modules:     Data.Fenceposted
+  build-depends:       base >= 4.7 && < 5, vector, transformers >= 0.4.0.0, bifunctors
   default-language:    Haskell2010
+  ghc-options:         -Wall

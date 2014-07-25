@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable, DeriveDataTypeable, DeriveGeneric #-}
-module Fenceposted
+module Data.Fenceposted
   ( Fenceposted(..)
   , singlePost
   , finalPost
