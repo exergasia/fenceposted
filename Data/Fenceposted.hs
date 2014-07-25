@@ -5,6 +5,8 @@ module Data.Fenceposted
   , finalPostL
   , postValuePairsL
   , FencepostedF(..)
+  , fencepostedF
+  , tritraverseFencepostedF
   , embed
   , project
   ) where
@@ -99,11 +101,29 @@ instance (Monoid post) => MonadPlus (Fenceposted post) where
 data FencepostedF post a r
   = FinalPost post
   | Panel post a r
-  deriving (Eq, Show, Traversable, F.Foldable, Functor)
+  deriving (Eq, Ord, Show, Read, Traversable, F.Foldable, Functor, Data, Typeable, Generic)
+
+instance (Eq post, Eq a) => Eq1 (FencepostedF post a) where
+  eq1 = (==)
+
+instance (Ord post, Ord a) => Ord1 (FencepostedF post a) where
+  compare1 = compare
+
+instance (Read post, Read a) => Read1 (FencepostedF post a) where
+  readsPrec1 = readsPrec
+
+instance (Show post, Show a) => Show1 (FencepostedF post a) where
+  showsPrec1 = showsPrec
+
+fencepostedF :: (post -> x) -> (post -> a -> r -> x) -> FencepostedF post a r -> x
+fencepostedF f _ (FinalPost post) = f post
+fencepostedF _ g (Panel post a r) = g post a r
+
+tritraverseFencepostedF :: (Applicative f) => (post -> f post') -> (a -> f a') -> (r -> f r') -> FencepostedF post a r -> f (FencepostedF post' a' r')
+tritraverseFencepostedF f g h = fencepostedF (fmap FinalPost . f) (\ post a r -> Panel <$> f post <*> g a <*> h r)
 
 embed :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
-embed (FinalPost post) = fencepost post
-embed (Panel post x (Fenceposted xs z)) = Fenceposted (Vec.cons (post, x) xs) z
+embed = fencepostedF fencepost (\ post x (Fenceposted xs z) -> Fenceposted (Vec.cons (post, x) xs) z)
 
 project :: Fenceposted post a -> FencepostedF post a (Fenceposted post a)
 project (Fenceposted xs z) =
