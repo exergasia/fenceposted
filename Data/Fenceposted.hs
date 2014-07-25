@@ -1,9 +1,9 @@
 {-# LANGUAGE DeriveFunctor, DeriveFoldable, DeriveTraversable, DeriveDataTypeable, DeriveGeneric #-}
 module Data.Fenceposted
   ( Fenceposted(..)
-  , singlePost
-  , finalPost
-  , postValuePairs
+  , fencepost
+  , finalPostL
+  , postValuePairsL
   , FencepostedF(..)
   , embed
   , project
@@ -25,6 +25,11 @@ import Data.Data (Data)
 import GHC.Generics (Generic)
 
 -- | @a@ values, separated by @post@s. There is one more @post@ than @a@.
+--
+-- >>> bitraverse_ putStrLn (putStrLn . (++ "!!!") . show) $ fencepost "foo" <> pure True <> fencepost "bar"
+-- foo
+-- True!!!
+-- bar
 data Fenceposted post a = Fenceposted (Vector (post, a)) post
   deriving (Show, Read, Eq, Ord, Functor, F.Foldable, Traversable, Data, Typeable, Generic)
 
@@ -40,16 +45,16 @@ instance (Read post) => Read1 (Fenceposted post) where
 instance (Show post) => Show1 (Fenceposted post) where
   showsPrec1 = showsPrec
 
--- | @Lens\' ('Fenceposted' post a) post@
-finalPost :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
-finalPost f (Fenceposted xs z) = Fenceposted xs <$> f z
+-- | @'finalPostL' :: Lens\' ('Fenceposted' post a) post@
+finalPostL :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
+finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
 
--- | @Lens\' ('Fenceposted' post a) ('Vector' (post, a))@
-postValuePairs :: (Functor f) => (Vector (post, a) -> f (Vector (post, a))) -> Fenceposted post a -> f (Fenceposted post a)
-postValuePairs f (Fenceposted xs z) = flip Fenceposted z <$> f xs
+-- | @'postValuePairsL' :: Lens\' ('Fenceposted' post a) ('Vector' (post, a))@
+postValuePairsL :: (Functor f) => (Vector (post, a) -> f (Vector (post, a))) -> Fenceposted post a -> f (Fenceposted post a)
+postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 
-singlePost :: post -> Fenceposted post a
-singlePost = Fenceposted mempty
+fencepost :: post -> Fenceposted post a
+fencepost = Fenceposted mempty
 
 instance Bitraversable Fenceposted where
   bitraverse f g (Fenceposted xs z) = Fenceposted <$> traverse (bitraverse f g) xs <*> f z
@@ -64,14 +69,14 @@ uncons :: Vector a -> Maybe (a, Vector a)
 uncons = bitraverse (Vec.!? 0) pure . Vec.splitAt 1
 
 instance (Monoid post) => Monoid (Fenceposted post a) where
-  mempty = singlePost mempty
+  mempty = fencepost mempty
   mappend (Fenceposted as aEnd) (Fenceposted bs bEnd) =
     case uncons bs of
       Just ((bStart, x), rest) -> Fenceposted (as <> pure (aEnd <> bStart, x) <> rest) bEnd
       Nothing -> Fenceposted as (aEnd <> bEnd)
 
 fencepostedJoin :: (Monoid post) => Fenceposted post (Fenceposted post a) -> Fenceposted post a
-fencepostedJoin (Fenceposted xs z) = F.foldMap (bifoldMap singlePost id) xs <> singlePost z
+fencepostedJoin (Fenceposted xs z) = F.foldMap (bifoldMap fencepost id) xs <> fencepost z
 
 instance (Monoid post) => Monad (Fenceposted post) where
   return x = Fenceposted (pure (mempty, x)) mempty
@@ -97,7 +102,7 @@ data FencepostedF post a r
   deriving (Eq, Show, Traversable, F.Foldable, Functor)
 
 embed :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
-embed (FinalPost post) = singlePost post
+embed (FinalPost post) = fencepost post
 embed (Panel post x (Fenceposted xs z)) = Fenceposted (Vec.cons (post, x) xs) z
 
 project :: Fenceposted post a -> FencepostedF post a (Fenceposted post a)
