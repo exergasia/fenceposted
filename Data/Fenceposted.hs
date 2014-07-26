@@ -27,6 +27,7 @@ import Data.Data (Data)
 import GHC.Generics (Generic)
 import qualified Data.Semigroup as Semi
 import Data.Semigroup hiding ((<>))
+import Data.Semigroup.Bifoldable
 
 -- | @a@ values, separated by @post@s. There is one more @post@ than @a@.
 --
@@ -65,6 +66,9 @@ instance Bitraversable Fenceposted where
 
 instance Bifoldable Fenceposted where
   bifoldMap = bifoldMapDefault
+
+instance Bifoldable1 Fenceposted where
+  bifoldMap1 f g (Fenceposted xs z) = F.foldr (Semi.<>) (f z) $ (\ (post, panel) -> f post Semi.<> g panel) <$> xs
 
 instance Bifunctor Fenceposted where
   bimap = bimapDefault
