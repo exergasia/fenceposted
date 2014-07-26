@@ -25,6 +25,8 @@ import Data.Functor.Classes (Eq1(eq1), Ord1(compare1), Read1(readsPrec1), Show1(
 import Data.Typeable (Typeable)
 import Data.Data (Data)
 import GHC.Generics (Generic)
+import qualified Data.Semigroup as Semi
+import Data.Semigroup hiding ((<>))
 
 -- | @a@ values, separated by @post@s. There is one more @post@ than @a@.
 --
@@ -70,12 +72,15 @@ instance Bifunctor Fenceposted where
 uncons :: Vector a -> Maybe (a, Vector a)
 uncons = bitraverse (Vec.!? 0) pure . Vec.splitAt 1
 
+instance (Semigroup post) => Semigroup (Fenceposted post a) where
+  Fenceposted as aEnd <> Fenceposted bs bEnd =
+    case uncons bs of
+      Just ((bStart, x), rest) -> Fenceposted (as <> pure (aEnd Semi.<> bStart, x) <> rest) bEnd
+      Nothing -> Fenceposted as (aEnd Semi.<> bEnd)
+
 instance (Monoid post) => Monoid (Fenceposted post a) where
   mempty = fencepost mempty
-  mappend (Fenceposted as aEnd) (Fenceposted bs bEnd) =
-    case uncons bs of
-      Just ((bStart, x), rest) -> Fenceposted (as <> pure (aEnd <> bStart, x) <> rest) bEnd
-      Nothing -> Fenceposted as (aEnd <> bEnd)
+  mappend a b = first unwrapMonoid $ first WrapMonoid a Semi.<> first WrapMonoid b
 
 fencepostedJoin :: (Monoid post) => Fenceposted post (Fenceposted post a) -> Fenceposted post a
 fencepostedJoin (Fenceposted xs z) = F.foldMap (bifoldMap fencepost id) xs <> fencepost z
