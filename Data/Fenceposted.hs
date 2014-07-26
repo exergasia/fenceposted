@@ -20,7 +20,7 @@ import Data.Bifoldable
 import Data.Bifunctor
 import Data.Monoid
 import Control.Applicative
-import Control.Monad (MonadPlus(mzero, mplus), ap)
+import Control.Monad (MonadPlus(mzero, mplus))
 import Data.Functor.Classes (Eq1(eq1), Ord1(compare1), Read1(readsPrec1), Show1(showsPrec1))
 import Data.Typeable (Typeable)
 import Data.Data (Data)
@@ -28,6 +28,9 @@ import GHC.Generics (Generic)
 import qualified Data.Semigroup as Semi
 import Data.Semigroup hiding ((<>))
 import Data.Semigroup.Bifoldable
+import Data.Functor.Apply
+import qualified Data.Functor.Bind as Bind
+import Data.Functor.Alt
 
 -- | @a@ values, separated by @post@s. There is one more @post@ than @a@.
 --
@@ -86,17 +89,23 @@ instance (Monoid post) => Monoid (Fenceposted post a) where
   mempty = fencepost mempty
   mappend a b = first unwrapMonoid $ first WrapMonoid a Semi.<> first WrapMonoid b
 
-fencepostedJoin :: (Monoid post) => Fenceposted post (Fenceposted post a) -> Fenceposted post a
-fencepostedJoin (Fenceposted xs z) = F.foldMap (bifoldMap fencepost id) xs <> fencepost z
+-- | A \'productish\' instance.
+instance (Semigroup post) => Apply (Fenceposted post) where
+  f <.> a = Bind.join $ (<$> a) <$> f
+
+instance (Monoid post) => Applicative (Fenceposted post) where
+  pure x = Fenceposted (pure (mempty, x)) mempty
+  f <*> a = first unwrapMonoid $ first WrapMonoid f <.> first WrapMonoid a
+
+instance (Semigroup post) => Bind.Bind (Fenceposted post) where
+  join = bifoldMap1 fencepost id
 
 instance (Monoid post) => Monad (Fenceposted post) where
-  return x = Fenceposted (pure (mempty, x)) mempty
-  a >>= f = fencepostedJoin $ fmap f a
+  return = pure
+  a >>= f = first unwrapMonoid $ Bind.join $ fmap (first WrapMonoid . f) (first WrapMonoid a)
 
--- | A \'productish\' instance.
-instance (Monoid post) => Applicative (Fenceposted post) where
-  pure = return
-  (<*>) = ap
+instance (Semigroup post) => Alt (Fenceposted post) where
+  (<!>) = (Semi.<>)
 
 instance (Monoid post) => Alternative (Fenceposted post) where
   empty = mempty
