@@ -80,10 +80,10 @@ uncons :: Vector a -> Maybe (a, Vector a)
 uncons = bitraverse (Vec.!? 0) pure . Vec.splitAt 1
 
 instance (Semigroup post) => Semigroup (Fenceposted post a) where
-  Fenceposted as aEnd <> Fenceposted bs bEnd =
-    case uncons bs of
-      Just ((bStart, x), rest) -> Fenceposted (as <> pure (aEnd Semi.<> bStart, x) <> rest) bEnd
-      Nothing -> Fenceposted as (aEnd Semi.<> bEnd)
+  Fenceposted as aEnd <> b =
+    case project b of
+      Panel bStart x (Fenceposted rest bEnd) -> Fenceposted (as <> pure (aEnd Semi.<> bStart, x) <> rest) bEnd
+      FinalPost bEnd -> Fenceposted as (aEnd Semi.<> bEnd)
 
 instance (Monoid post) => Monoid (Fenceposted post a) where
   mempty = fencepost mempty
