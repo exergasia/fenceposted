@@ -31,6 +31,7 @@ import Data.Semigroup.Bifoldable
 import Data.Functor.Apply
 import qualified Data.Functor.Bind as Bind
 import Data.Functor.Alt
+import Data.Semigroup.Bitraversable
 
 -- | @a@ values, separated by @post@s. There is one more @post@ than @a@.
 --
@@ -65,14 +66,17 @@ postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 fencepost :: post -> Fenceposted post a
 fencepost = Fenceposted mempty
 
+instance Bitraversable1 Fenceposted where
+  bitraverse1 f g (Fenceposted xs z) = F.foldr (\ (post, x) acc -> fmap embed $ Panel <$> f post <.> g x <.> acc) (fencepost <$> f z) xs
+
 instance Bitraversable Fenceposted where
-  bitraverse f g (Fenceposted xs z) = Fenceposted <$> traverse (bitraverse f g) xs <*> f z
+  bitraverse f g = unwrapApplicative . bitraverse (WrapApplicative . f) (WrapApplicative . g)
+
+instance Bifoldable1 Fenceposted where
+  bifoldMap1 = bifoldMap1Default
 
 instance Bifoldable Fenceposted where
   bifoldMap = bifoldMapDefault
-
-instance Bifoldable1 Fenceposted where
-  bifoldMap1 f g (Fenceposted xs z) = F.foldr (Semi.<>) (f z) $ bifoldMap1 f g <$> xs
 
 instance Bifunctor Fenceposted where
   bimap = bimapDefault
@@ -162,6 +166,9 @@ instance (Read post) => Read1 (ZipFenceposted post) where
 
 instance (Show post) => Show1 (ZipFenceposted post) where
   showsPrec1 = showsPrec
+
+instance Bitraversable1 ZipFenceposted where
+  bitraverse1 f g = fmap ZipFenceposted . bitraverse1 f g . getZipFenceposted
 
 instance Bitraversable ZipFenceposted where
   bitraverse f g = fmap ZipFenceposted . bitraverse f g . getZipFenceposted
