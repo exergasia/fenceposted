@@ -9,6 +9,7 @@ module Data.Fenceposted
   , tritraverseFencepostedF
   , embed
   , project
+  , ZipFenceposted(..)
   ) where
 
 import Data.Traversable
@@ -143,3 +144,27 @@ project (Fenceposted xs z) =
   case xs of
     (post, x) : rest -> Panel post x (Fenceposted rest z)
     [] -> FinalPost z
+
+newtype ZipFenceposted post a = ZipFenceposted { getZipFenceposted :: Fenceposted post a }
+  deriving (Eq, Ord, Show, Read, Functor, F.Foldable, Traversable)
+
+instance Bifunctor ZipFenceposted where
+  bimap f g = ZipFenceposted . bimap f g . getZipFenceposted
+
+fencepostZipWith :: (p -> q -> r) -> (a -> b -> c) -> Fenceposted p a -> Fenceposted q b -> Fenceposted r c
+fencepostZipWith f g a b =
+  embed $ case (project a, project b) of
+    (FinalPost aPost, FinalPost bPost) -> FinalPost (f aPost bPost)
+    (FinalPost aPost, Panel bPost _ _) -> FinalPost (f aPost bPost)
+    (Panel aPost _ _, FinalPost bPost) -> FinalPost (f aPost bPost)
+    (Panel aPost aVal as, Panel bPost bVal bs) -> Panel (f aPost bPost) (g aVal bVal) $ fencepostZipWith f g as bs
+
+fencepostRepeat :: (Monoid post) => a -> Fenceposted post a
+fencepostRepeat x = embed $ Panel mempty x $ fencepostRepeat x
+
+instance (Semigroup post) => Apply (ZipFenceposted post) where
+  ZipFenceposted a <.> ZipFenceposted b = ZipFenceposted $ fencepostZipWith (Semi.<>) ($) a b
+
+instance (Monoid post) => Applicative (ZipFenceposted post) where
+  pure = ZipFenceposted . fencepostRepeat
+  a <*> b = first unwrapMonoid $ first WrapMonoid a <.> first WrapMonoid b
