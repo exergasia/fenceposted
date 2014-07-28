@@ -71,7 +71,7 @@ instance Bifoldable Fenceposted where
   bifoldMap = bifoldMapDefault
 
 instance Bifoldable1 Fenceposted where
-  bifoldMap1 f g (Fenceposted xs z) = F.foldr (Semi.<>) (f z) $ (\ (post, panel) -> f post Semi.<> g panel) <$> xs
+  bifoldMap1 f g (Fenceposted xs z) = F.foldr (Semi.<>) (f z) $ bifoldMap1 f g <$> xs
 
 instance Bifunctor Fenceposted where
   bimap = bimapDefault
