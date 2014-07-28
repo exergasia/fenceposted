@@ -55,8 +55,8 @@ instance (Show post) => Show1 (Fenceposted post) where
 finalPostL :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
 finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
 
--- | @'postValuePairsL' :: Lens\' ('Fenceposted' post a) [(post, a)]@
-postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a)]) -> Fenceposted post a -> f (Fenceposted post a)
+-- | @'postValuePairsL' :: Lens ('Fenceposted' post a) ('Fenceposted' post a\') [(post, a)] [(post, a\')]@
+postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a')]) -> Fenceposted post a -> f (Fenceposted post a')
 postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 
 fencepost :: post -> Fenceposted post a
