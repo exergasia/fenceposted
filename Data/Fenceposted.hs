@@ -2,6 +2,7 @@
 module Data.Fenceposted
   ( Fenceposted(..)
   , fencepost
+  , panel
   , finalPostL
   , postValuePairsL
   , FencepostedF(..)
@@ -66,8 +67,12 @@ postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 fencepost :: post -> Fenceposted post a
 fencepost = Fenceposted mempty
 
+-- | Add a new \'post\' and a \'panel\' at the left.
+panel :: post -> a -> Fenceposted post a -> Fenceposted post a
+panel post x (Fenceposted xs z) = Fenceposted ((post, x) : xs) z
+
 instance Bitraversable1 Fenceposted where
-  bitraverse1 f g (Fenceposted xs z) = F.foldr (\ (post, x) acc -> fmap embed $ Panel <$> f post <.> g x <.> acc) (fencepost <$> f z) xs
+  bitraverse1 f g (Fenceposted xs z) = F.foldr (liftF2 (uncurry panel)) (fencepost <$> f z) $ bitraverse1 f g <$> xs
 
 instance Bitraversable Fenceposted where
   bitraverse f g = unwrapApplicative . bitraverse1 (WrapApplicative . f) (WrapApplicative . g)
@@ -143,7 +148,7 @@ tritraverseFencepostedF :: (Applicative f) => (post -> f post') -> (a -> f a') -
 tritraverseFencepostedF f g h = fencepostedF (fmap FinalPost . f) (\ post a r -> Panel <$> f post <*> g a <*> h r)
 
 embed :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
-embed = fencepostedF fencepost (\ post x (Fenceposted xs z) -> Fenceposted ((post, x) : xs) z)
+embed = fencepostedF fencepost panel
 
 project :: Fenceposted post a -> FencepostedF post a (Fenceposted post a)
 project (Fenceposted xs z) =
@@ -192,11 +197,11 @@ instance (Monoid post) => Monoid (ZipFenceposted post a) where
 -- | Zip together two @Fenceposted@s with the given combining functions.
 fencepostZipWith :: (p -> q -> r) -> (a -> b -> c) -> Fenceposted p a -> Fenceposted q b -> Fenceposted r c
 fencepostZipWith f g a b =
-  embed $ case (project a, project b) of
-    (FinalPost aPost, FinalPost bPost) -> FinalPost (f aPost bPost)
-    (FinalPost aPost, Panel bPost _ _) -> FinalPost (f aPost bPost)
-    (Panel aPost _ _, FinalPost bPost) -> FinalPost (f aPost bPost)
-    (Panel aPost aVal as, Panel bPost bVal bs) -> Panel (f aPost bPost) (g aVal bVal) $ fencepostZipWith f g as bs
+  case (project a, project b) of
+    (FinalPost aPost, FinalPost bPost) -> fencepost (f aPost bPost)
+    (FinalPost aPost, Panel bPost _ _) -> fencepost (f aPost bPost)
+    (Panel aPost _ _, FinalPost bPost) -> fencepost (f aPost bPost)
+    (Panel aPost aVal as, Panel bPost bVal bs) -> panel (f aPost bPost) (g aVal bVal) $ fencepostZipWith f g as bs
 
 fencepostRepeat :: (Monoid post) => a -> Fenceposted post a
 fencepostRepeat x = embed $ Panel mempty x $ fencepostRepeat x
