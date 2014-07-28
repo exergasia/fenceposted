@@ -149,7 +149,7 @@ project (Fenceposted xs z) =
 
 -- | Alternative \'zippish\' @Apply@/@Applicative@ instance.
 newtype ZipFenceposted post a = ZipFenceposted { getZipFenceposted :: Fenceposted post a }
-  deriving (Eq, Ord, Show, Read, Functor, F.Foldable, Traversable)
+  deriving (Eq, Ord, Show, Read, Functor, F.Foldable, Traversable, Data, Typeable, Generic)
 
 instance (Eq post) => Eq1 (ZipFenceposted post) where
   eq1 = (==)
