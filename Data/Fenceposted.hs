@@ -56,10 +56,12 @@ instance (Show post) => Show1 (Fenceposted post) where
 -- | @'finalPostL' :: Lens\' ('Fenceposted' post a) post@
 finalPostL :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
 finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
+
 -- | @'postValuePairsL' :: Lens ('Fenceposted' post a) ('Fenceposted' post a\') [(post, a)] [(post, a\')]@
 postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a')]) -> Fenceposted post a -> f (Fenceposted post a')
 postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 
+-- | A single terminal fencepost.
 fencepost :: post -> Fenceposted post a
 fencepost = Fenceposted mempty
 
@@ -145,6 +147,7 @@ project (Fenceposted xs z) =
     (post, x) : rest -> Panel post x (Fenceposted rest z)
     [] -> FinalPost z
 
+-- | Alternative \'zippish\' @Apply@/@Applicative@ instance.
 newtype ZipFenceposted post a = ZipFenceposted { getZipFenceposted :: Fenceposted post a }
   deriving (Eq, Ord, Show, Read, Functor, F.Foldable, Traversable)
 
@@ -179,6 +182,7 @@ instance (Monoid post) => Monoid (ZipFenceposted post a) where
   mempty = ZipFenceposted mempty
   mappend (ZipFenceposted a) (ZipFenceposted b) = ZipFenceposted $ mappend a b
 
+-- | Zip together two @Fenceposted@s with the given combining functions.
 fencepostZipWith :: (p -> q -> r) -> (a -> b -> c) -> Fenceposted p a -> Fenceposted q b -> Fenceposted r c
 fencepostZipWith f g a b =
   embed $ case (project a, project b) of
