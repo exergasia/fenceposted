@@ -70,7 +70,7 @@ instance Bitraversable1 Fenceposted where
   bitraverse1 f g (Fenceposted xs z) = F.foldr (\ (post, x) acc -> fmap embed $ Panel <$> f post <.> g x <.> acc) (fencepost <$> f z) xs
 
 instance Bitraversable Fenceposted where
-  bitraverse f g = unwrapApplicative . bitraverse (WrapApplicative . f) (WrapApplicative . g)
+  bitraverse f g = unwrapApplicative . bitraverse1 (WrapApplicative . f) (WrapApplicative . g)
 
 instance Bifoldable1 Fenceposted where
   bifoldMap1 = bifoldMap1Default
