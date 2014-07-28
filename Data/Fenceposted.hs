@@ -11,8 +11,6 @@ module Data.Fenceposted
   , project
   ) where
 
-import qualified Data.Vector as Vec
-import Data.Vector (Vector)
 import Data.Traversable
 import qualified Data.Foldable as F
 import Data.Bitraversable
@@ -38,7 +36,7 @@ import Data.Functor.Alt
 -- foo
 -- True!!!
 -- bar
-data Fenceposted post a = Fenceposted (Vector (post, a)) post
+data Fenceposted post a = Fenceposted [(post, a)] post
   deriving (Show, Read, Eq, Ord, Functor, F.Foldable, Traversable, Data, Typeable, Generic)
 
 instance (Eq post) => Eq1 (Fenceposted post) where
@@ -57,8 +55,8 @@ instance (Show post) => Show1 (Fenceposted post) where
 finalPostL :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
 finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
 
--- | @'postValuePairsL' :: Lens\' ('Fenceposted' post a) ('Vector' (post, a))@
-postValuePairsL :: (Functor f) => (Vector (post, a) -> f (Vector (post, a))) -> Fenceposted post a -> f (Fenceposted post a)
+-- | @'postValuePairsL' :: Lens\' ('Fenceposted' post a) [(post, a)]@
+postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a)]) -> Fenceposted post a -> f (Fenceposted post a)
 postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 
 fencepost :: post -> Fenceposted post a
@@ -75,9 +73,6 @@ instance Bifoldable1 Fenceposted where
 
 instance Bifunctor Fenceposted where
   bimap = bimapDefault
-
-uncons :: Vector a -> Maybe (a, Vector a)
-uncons = bitraverse (Vec.!? 0) pure . Vec.splitAt 1
 
 instance (Semigroup post) => Semigroup (Fenceposted post a) where
   Fenceposted as aEnd <> b =
@@ -141,10 +136,10 @@ tritraverseFencepostedF :: (Applicative f) => (post -> f post') -> (a -> f a') -
 tritraverseFencepostedF f g h = fencepostedF (fmap FinalPost . f) (\ post a r -> Panel <$> f post <*> g a <*> h r)
 
 embed :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
-embed = fencepostedF fencepost (\ post x (Fenceposted xs z) -> Fenceposted (Vec.cons (post, x) xs) z)
+embed = fencepostedF fencepost (\ post x (Fenceposted xs z) -> Fenceposted ((post, x) : xs) z)
 
 project :: Fenceposted post a -> FencepostedF post a (Fenceposted post a)
 project (Fenceposted xs z) =
-  case uncons xs of
-    Just ((post, x), rest) -> Panel post x (Fenceposted rest z)
-    Nothing -> FinalPost z
+  case xs of
+    (post, x) : rest -> Panel post x (Fenceposted rest z)
+    [] -> FinalPost z
