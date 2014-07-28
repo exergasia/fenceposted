@@ -9,6 +9,7 @@ module Data.Fenceposted
   , tritraverseFencepostedF
   , embed
   , project
+  , fencepostZipWith
   , ZipFenceposted(..)
   ) where
 
