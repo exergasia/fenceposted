@@ -55,7 +55,6 @@ instance (Show post) => Show1 (Fenceposted post) where
 -- | @'finalPostL' :: Lens\' ('Fenceposted' post a) post@
 finalPostL :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
 finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
-
 -- | @'postValuePairsL' :: Lens ('Fenceposted' post a) ('Fenceposted' post a\') [(post, a)] [(post, a\')]@
 postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a')]) -> Fenceposted post a -> f (Fenceposted post a')
 postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
@@ -148,8 +147,36 @@ project (Fenceposted xs z) =
 newtype ZipFenceposted post a = ZipFenceposted { getZipFenceposted :: Fenceposted post a }
   deriving (Eq, Ord, Show, Read, Functor, F.Foldable, Traversable)
 
+instance (Eq post) => Eq1 (ZipFenceposted post) where
+  eq1 = (==)
+
+instance (Ord post) => Ord1 (ZipFenceposted post) where
+  compare1 = compare
+
+instance (Read post) => Read1 (ZipFenceposted post) where
+  readsPrec1 = readsPrec
+
+instance (Show post) => Show1 (ZipFenceposted post) where
+  showsPrec1 = showsPrec
+
+instance Bitraversable ZipFenceposted where
+  bitraverse f g = fmap ZipFenceposted . bitraverse f g . getZipFenceposted
+
+instance Bifoldable ZipFenceposted where
+  bifoldMap = bifoldMapDefault
+
+instance Bifoldable1 ZipFenceposted where
+  bifoldMap1 f g = bifoldMap1 f g . getZipFenceposted
+
 instance Bifunctor ZipFenceposted where
-  bimap f g = ZipFenceposted . bimap f g . getZipFenceposted
+  bimap = bimapDefault
+
+instance (Semigroup post) => Semigroup (ZipFenceposted post a) where
+  ZipFenceposted a <> ZipFenceposted b = ZipFenceposted $ a Semi.<> b
+
+instance (Monoid post) => Monoid (ZipFenceposted post a) where
+  mempty = ZipFenceposted mempty
+  mappend (ZipFenceposted a) (ZipFenceposted b) = ZipFenceposted $ mappend a b
 
 fencepostZipWith :: (p -> q -> r) -> (a -> b -> c) -> Fenceposted p a -> Fenceposted q b -> Fenceposted r c
 fencepostZipWith f g a b =
