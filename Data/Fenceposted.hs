@@ -204,7 +204,7 @@ fencepostZipWith f g a b =
     (Panel aPost aVal as, Panel bPost bVal bs) -> panel (f aPost bPost) (g aVal bVal) $ fencepostZipWith f g as bs
 
 fencepostRepeat :: (Monoid post) => a -> Fenceposted post a
-fencepostRepeat x = embed $ Panel mempty x $ fencepostRepeat x
+fencepostRepeat x = panel mempty x $ fencepostRepeat x
 
 instance (Semigroup post) => Apply (ZipFenceposted post) where
   ZipFenceposted a <.> ZipFenceposted b = ZipFenceposted $ fencepostZipWith (Semi.<>) ($) a b
