@@ -7,7 +7,7 @@ module Data.Fenceposted
   , postValuePairsL
   , FencepostedF(..)
   , fencepostedF
-  , tritraverseFencepostedF
+  , tritraverse1FencepostedF
   , embed
   , project
   , fencepostZipWith
@@ -144,8 +144,8 @@ fencepostedF :: (post -> x) -> (post -> a -> r -> x) -> FencepostedF post a r ->
 fencepostedF f _ (FinalPost post) = f post
 fencepostedF _ g (Panel post a r) = g post a r
 
-tritraverseFencepostedF :: (Applicative f) => (post -> f post') -> (a -> f a') -> (r -> f r') -> FencepostedF post a r -> f (FencepostedF post' a' r')
-tritraverseFencepostedF f g h = fencepostedF (fmap FinalPost . f) (\ post a r -> Panel <$> f post <*> g a <*> h r)
+tritraverse1FencepostedF :: (Apply f) => (post -> f post') -> (a -> f a') -> (r -> f r') -> FencepostedF post a r -> f (FencepostedF post' a' r')
+tritraverse1FencepostedF f g h = fencepostedF (fmap FinalPost . f) (\ post a r -> Panel <$> f post <.> g a <.> h r)
 
 embed :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
 embed = fencepostedF fencepost panel
