@@ -3,6 +3,7 @@ module Data.Fenceposted
   ( Fenceposted(..)
   , fencepost
   , panel
+  , posts
   , finalPostL
   , postValuePairsL
   , FencepostedF(..)
@@ -62,6 +63,10 @@ finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
 -- | @'postValuePairsL' :: Lens ('Fenceposted' post a) ('Fenceposted' post a\') [(post, a)] [(post, a\')]@
 postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a')]) -> Fenceposted post a -> f (Fenceposted post a')
 postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
+
+-- | @posts :: Traversal1 (Fenceposted post a) (Fenceposted post\' a) post post\'@
+posts :: (Apply f) => (post -> f post') -> Fenceposted post a -> f (Fenceposted post' a)
+posts f (Fenceposted xs z) = F.foldr (\ (post, x) acc -> flip panel x <$> f post <.> acc) (fencepost <$> f z) xs
 
 -- | A single terminal fencepost.
 fencepost :: post -> Fenceposted post a
