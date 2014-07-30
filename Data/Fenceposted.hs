@@ -4,6 +4,7 @@ module Data.Fenceposted
   , fencepost
   , panel
   , posts
+  , joinPosts
   , finalPostL
   , postValuePairsL
   , FencepostedF(..)
@@ -75,6 +76,11 @@ fencepost = Fenceposted mempty
 -- | Add a new \'post\' and a \'panel\' at the left.
 panel :: post -> a -> Fenceposted post a -> Fenceposted post a
 panel post x (Fenceposted xs z) = Fenceposted ((post, x) : xs) z
+
+joinPosts :: Fenceposted (Fenceposted post a) a -> Fenceposted post a
+joinPosts (Fenceposted xs z) = foldr f z xs
+  where
+    f (Fenceposted as az, x) (Fenceposted bs bz) = Fenceposted (as <> ((az, x):bs)) bz
 
 instance Bitraversable1 Fenceposted where
   bitraverse1 f g (Fenceposted xs z) = F.foldr (liftF2 (uncurry panel)) (fencepost <$> f z) $ bitraverse1 f g <$> xs
