@@ -5,8 +5,6 @@ module Data.Fenceposted
   , panel
   , posts
   , joinPosts
-  , finalPostL
-  , postValuePairsL
   , FencepostedF(..)
   , fencepostedF
   , tritraverse1FencepostedF
@@ -56,14 +54,6 @@ instance (Read post) => Read1 (Fenceposted post) where
 
 instance (Show post) => Show1 (Fenceposted post) where
   showsPrec1 = showsPrec
-
--- | @'finalPostL' :: Lens\' ('Fenceposted' post a) post@
-finalPostL :: (Functor f) => (post -> f post) -> Fenceposted post a -> f (Fenceposted post a)
-finalPostL f (Fenceposted xs z) = Fenceposted xs <$> f z
-
--- | @'postValuePairsL' :: Lens ('Fenceposted' post a) ('Fenceposted' post a\') [(post, a)] [(post, a\')]@
-postValuePairsL :: (Functor f) => ([(post, a)] -> f [(post, a')]) -> Fenceposted post a -> f (Fenceposted post a')
-postValuePairsL f (Fenceposted xs z) = flip Fenceposted z <$> f xs
 
 -- | @posts :: Traversal1 (Fenceposted post a) (Fenceposted post\' a) post post\'@
 posts :: (Apply f) => (post -> f post') -> Fenceposted post a -> f (Fenceposted post' a)
