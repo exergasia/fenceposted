@@ -10,8 +10,8 @@ module Data.Fenceposted
   , FencepostedF(..)
   , fencepostedF
   , tritraverse1FencepostedF
-  , embed
-  , project
+  , embedFenceposted
+  , projectFenceposted
   , fencepostZipWith
   , ZipFenceposted(..)
   ) where
@@ -99,7 +99,7 @@ instance Bifunctor Fenceposted where
 
 instance (Semigroup post) => Semigroup (Fenceposted post a) where
   Fenceposted as aEnd <> b =
-    case project b of
+    case projectFenceposted b of
       Panel bStart x (Fenceposted rest bEnd) -> Fenceposted (as <> pure (aEnd Semi.<> bStart, x) <> rest) bEnd
       FinalPost bEnd -> Fenceposted as (aEnd Semi.<> bEnd)
 
@@ -158,11 +158,11 @@ fencepostedF _ g (Panel post a r) = g post a r
 tritraverse1FencepostedF :: (Apply f) => (post -> f post') -> (a -> f a') -> (r -> f r') -> FencepostedF post a r -> f (FencepostedF post' a' r')
 tritraverse1FencepostedF f g h = fencepostedF (fmap FinalPost . f) (\ post a r -> Panel <$> f post <.> g a <.> h r)
 
-embed :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
-embed = fencepostedF fencepost panel
+embedFenceposted :: FencepostedF post a (Fenceposted post a) -> Fenceposted post a
+embedFenceposted = fencepostedF fencepost panel
 
-project :: Fenceposted post a -> FencepostedF post a (Fenceposted post a)
-project (Fenceposted xs z) =
+projectFenceposted :: Fenceposted post a -> FencepostedF post a (Fenceposted post a)
+projectFenceposted (Fenceposted xs z) =
   case xs of
     (post, x) : rest -> Panel post x (Fenceposted rest z)
     [] -> FinalPost z
@@ -208,7 +208,7 @@ instance (Monoid post) => Monoid (ZipFenceposted post a) where
 -- | Zip together two @Fenceposted@s with the given combining functions.
 fencepostZipWith :: (p -> q -> r) -> (a -> b -> c) -> Fenceposted p a -> Fenceposted q b -> Fenceposted r c
 fencepostZipWith f g a b =
-  case (project a, project b) of
+  case (projectFenceposted a, projectFenceposted b) of
     (FinalPost aPost, FinalPost bPost) -> fencepost (f aPost bPost)
     (FinalPost aPost, Panel bPost _ _) -> fencepost (f aPost bPost)
     (Panel aPost _ _, FinalPost bPost) -> fencepost (f aPost bPost)
