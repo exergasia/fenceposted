@@ -4,6 +4,7 @@ module Data.TaggedTree
  , _TaggedTree
  , subtree
  , foldTaggedTree
+ , nullTaggedTree
  , embedTaggedTree
  , projectTaggedTree
  , TaggedTreeF(..)
@@ -54,6 +55,12 @@ projectTaggedTree = TaggedTreeF . unTaggedTree
 
 embedTaggedTree :: TaggedTreeF tag a (TaggedTree tag a) -> TaggedTree tag a
 embedTaggedTree = TaggedTree . unTaggedTreeF
+
+nullTaggedTree :: (Eq a, Monoid a) => TaggedTree tag a -> Bool
+nullTaggedTree t =
+  case projectFenceposted $ unTaggedTree t of
+    FinalPost x -> x == mempty
+    Panel _ _ _ -> False
 
 instance (Semigroup a) => Semigroup (TaggedTree tag a) where
   a <> b = TaggedTree $ unTaggedTree a Semi.<> unTaggedTree b
