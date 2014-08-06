@@ -7,7 +7,6 @@ module Data.TaggedTree
  , nullTaggedTree
  , embedTaggedTree
  , projectTaggedTree
- , TaggedTreeF(..)
  ) where
 
 import Data.Fenceposted
@@ -34,27 +33,18 @@ data TaggedTree tag a
       = TaggedTree { unTaggedTree :: Fenceposted a (tag, TaggedTree tag a) }
     deriving (Eq, Ord, Read, Show, Generic, Data, Typeable)
 
-newtype TaggedTreeF tag a r = TaggedTreeF { unTaggedTreeF :: Fenceposted a (tag, r) }
-  deriving (Eq, Ord, Read, Show, Generic, Data, Typeable, Functor, F.Foldable, Traversable)
-
-tritraverse1TaggedTreeF :: (Apply f) => (tag -> f tag') -> (a -> f a') -> (r -> f r') -> TaggedTreeF tag a r -> f (TaggedTreeF tag' a' r')
-tritraverse1TaggedTreeF f g h = fmap TaggedTreeF . bitraverse1 g (bitraverse1 f h) . unTaggedTreeF
-
-bitraverse1TaggedTreeF :: (Apply f) => (a -> f a') -> (r -> f r') -> TaggedTreeF tag a r -> f (TaggedTreeF tag a' r')
-bitraverse1TaggedTreeF f g = fmap TaggedTreeF . bitraverse1 f (traverse1 g) . unTaggedTreeF
-
 -- | @_TaggedTree :: Iso (Fenceposted a (tag, TaggedTree tag a)) (Fenceposted a' (tag', TaggedTree tag' a')) (TaggedTree tag a) (TaggedTree tag' a')
 _TaggedTree :: (Profunctor p, Functor f) => p (TaggedTree tag a) (f (TaggedTree tag' a')) -> p (Fenceposted a (tag, TaggedTree tag a)) (f (Fenceposted a' (tag', TaggedTree tag' a')))
 _TaggedTree = dimap TaggedTree (fmap unTaggedTree)
 
-foldTaggedTree :: (TaggedTreeF tag a r -> r) -> TaggedTree tag a -> r
-foldTaggedTree f = f . fmap (foldTaggedTree f) . projectTaggedTree
+foldTaggedTree :: (Fenceposted a (tag, r) -> r) -> TaggedTree tag a -> r
+foldTaggedTree f = f . fmap (fmap (foldTaggedTree f)) . projectTaggedTree
 
-projectTaggedTree :: TaggedTree tag a -> TaggedTreeF tag a (TaggedTree tag a)
-projectTaggedTree = TaggedTreeF . unTaggedTree
+projectTaggedTree :: TaggedTree tag a -> Fenceposted a (tag, TaggedTree tag a)
+projectTaggedTree = unTaggedTree
 
-embedTaggedTree :: TaggedTreeF tag a (TaggedTree tag a) -> TaggedTree tag a
-embedTaggedTree = TaggedTree . unTaggedTreeF
+embedTaggedTree :: Fenceposted a (tag, TaggedTree tag a) -> TaggedTree tag a
+embedTaggedTree = TaggedTree
 
 nullTaggedTree :: (Eq a, Monoid a) => TaggedTree tag a -> Bool
 nullTaggedTree t =
@@ -70,7 +60,7 @@ instance (Monoid a) => Monoid (TaggedTree tag a) where
   mappend a b = fmap unwrapMonoid $ fmap WrapMonoid a Semi.<> fmap WrapMonoid b
 
 instance Bitraversable1 TaggedTree where
-  bitraverse1 f g = foldTaggedTree (fmap embedTaggedTree . tritraverse1TaggedTreeF f g id)
+  bitraverse1 f g = foldTaggedTree (fmap embedTaggedTree . bitraverse1 g (bitraverse1 f id))
 
 instance Bifoldable1 TaggedTree where
   bifoldMap1 = bifoldMap1Default
@@ -79,7 +69,7 @@ instance Bitraversable TaggedTree where
   bitraverse f g = unwrapApplicative . bitraverse1 (WrapApplicative . f) (WrapApplicative . g)
 
 instance Traversable1 (TaggedTree tag) where
-  traverse1 f = foldTaggedTree (fmap embedTaggedTree . bitraverse1TaggedTreeF f id)
+  traverse1 f = foldTaggedTree (fmap embedTaggedTree . bitraverse1 f sequence1)
 
 instance Foldable1 (TaggedTree tag) where
   foldMap1 = foldMap1Default
@@ -103,7 +93,7 @@ subtree :: (Monoid a) => tag -> TaggedTree tag a -> TaggedTree tag a
 subtree tag f = TaggedTree (pure (tag, f))
 
 instance Bind.Bind (TaggedTree tag) where
-  join = foldTaggedTree (TaggedTree . joinPosts . first unTaggedTree . unTaggedTreeF)
+  join = foldTaggedTree (TaggedTree . joinPosts . first unTaggedTree)
 
 instance Apply (TaggedTree tag) where
   f <.> a = Bind.join $ (<$> a) <$> f
