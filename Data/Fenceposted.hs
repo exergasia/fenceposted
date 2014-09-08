@@ -41,7 +41,7 @@ import Data.Semigroup.Bitraversable
 -- True!!!
 -- bar
 data Fenceposted post a = Fenceposted [(post, a)] post
-  deriving (Show, Read, Eq, Ord, Functor, F.Foldable, Traversable, Data, Typeable, Generic)
+  deriving (Show, Read, Eq, Ord, Data, Typeable, Generic)
 
 instance (Eq post) => Eq1 (Fenceposted post) where
   eq1 = (==)
@@ -61,7 +61,7 @@ instance (Show post) => Show1 (Fenceposted post) where
 
 -- | @posts :: Traversal1 (Fenceposted post a) (Fenceposted post\' a) post post\'@
 posts :: (Apply f) => (post -> f post') -> Fenceposted post a -> f (Fenceposted post' a)
-posts f (Fenceposted xs z) = F.foldr (\ (post, x) acc -> flip panel x <$> f post <.> acc) (fencepost <$> f z) xs
+posts f (Fenceposted xs z) = foldr (\ (post, x) acc -> flip panel x <$> f post <.> acc) (fencepost <$> f z) xs
 {-# INLINE posts #-}
 
 -- | A single terminal fencepost.
@@ -81,7 +81,7 @@ joinPosts (Fenceposted xs z) = foldr f z xs
 {-# INLINE joinPosts #-}
 
 instance Bitraversable1 Fenceposted where
-  bitraverse1 f g (Fenceposted xs z) = F.foldr (liftF2 (uncurry panel)) (fencepost <$> f z) $ bitraverse1 f g <$> xs
+  bitraverse1 f g = \ (Fenceposted xs z) -> foldr (liftF2 (uncurry panel)) (fencepost <$> f z) $ bitraverse1 f g <$> xs
   {-# INLINE bitraverse1 #-}
 
 instance Bitraversable Fenceposted where
@@ -89,16 +89,28 @@ instance Bitraversable Fenceposted where
   {-# INLINE bitraverse #-}
 
 instance Bifoldable1 Fenceposted where
-  bifoldMap1 = bifoldMap1Default
+  bifoldMap1 f g = bifoldMap1Default f g
   {-# INLINE bifoldMap1 #-}
 
 instance Bifoldable Fenceposted where
-  bifoldMap = bifoldMapDefault
+  bifoldMap f g = bifoldMapDefault f g
   {-# INLINE bifoldMap #-}
 
 instance Bifunctor Fenceposted where
-  bimap = bimapDefault
+  bimap f g = bimapDefault f g
   {-# INLINE bimap #-}
+
+instance Traversable (Fenceposted a) where
+  traverse f = bitraverse pure f
+  {-# INLINE traverse #-}
+
+instance F.Foldable (Fenceposted a) where
+  foldMap f = foldMapDefault f
+  {-# INLINE F.foldMap #-}
+
+instance Functor (Fenceposted a) where
+  fmap f = fmapDefault f
+  {-# INLINE fmap #-}
 
 instance (Semigroup post) => Semigroup (Fenceposted post a) where
   Fenceposted as aEnd <> b =
