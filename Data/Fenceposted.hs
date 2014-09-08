@@ -67,12 +67,12 @@ posts f (Fenceposted xs z) = foldr (\ (post, x) acc -> flip panel x <$> f post <
 -- | A single terminal fencepost.
 fencepost :: post -> Fenceposted post a
 fencepost = Fenceposted mempty
-{-# INLINE fencepost #-}
+{-# INLINE CONLIKE fencepost #-}
 
 -- | Add a new \'post\' and a \'panel\' at the left.
 panel :: post -> a -> Fenceposted post a -> Fenceposted post a
 panel post x (Fenceposted xs z) = Fenceposted ((post, x) : xs) z
-{-# INLINE panel #-}
+{-# INLINE CONLIKE panel #-}
 
 joinPosts :: Fenceposted (Fenceposted post a) a -> Fenceposted post a
 joinPosts (Fenceposted xs z) = foldr f z xs
@@ -81,7 +81,7 @@ joinPosts (Fenceposted xs z) = foldr f z xs
 {-# INLINE joinPosts #-}
 
 instance Bitraversable1 Fenceposted where
-  bitraverse1 f g = \ (Fenceposted xs z) -> foldr (liftF2 (uncurry panel)) (fencepost <$> f z) $ bitraverse1 f g <$> xs
+  bitraverse1 f g = \ (Fenceposted xs z) -> foldr (liftF2 (uncurry panel) . bitraverse1 f g) (fencepost <$> f z) xs
   {-# INLINE bitraverse1 #-}
 
 instance Bitraversable Fenceposted where

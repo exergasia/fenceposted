@@ -39,7 +39,9 @@ _TaggedTree = dimap TaggedTree (fmap unTaggedTree)
 {-# INLINE _TaggedTree #-}
 
 foldTaggedTree :: (Fenceposted a (tag, r) -> r) -> TaggedTree tag a -> r
-foldTaggedTree f = f . fmap (fmap (foldTaggedTree f)) . projectTaggedTree
+foldTaggedTree f =
+  let g = f . fmap (fmap g) . projectTaggedTree
+  in g
 {-# INLINE foldTaggedTree #-}
 
 projectTaggedTree :: TaggedTree tag a -> Fenceposted a (tag, TaggedTree tag a)
@@ -64,7 +66,7 @@ instance (Semigroup a) => Semigroup (TaggedTree tag a) where
 instance (Monoid a) => Monoid (TaggedTree tag a) where
   mempty = TaggedTree mempty
   {-# INLINE mempty #-}
-  mappend a b = fmap unwrapMonoid $ fmap WrapMonoid a Semi.<> fmap WrapMonoid b
+  mappend a b = TaggedTree $ unTaggedTree a <> unTaggedTree b
   {-# INLINE mappend #-}
 
 instance Bitraversable1 TaggedTree where
