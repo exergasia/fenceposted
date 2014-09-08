@@ -54,10 +54,12 @@ nullTaggedTree t =
 
 instance (Semigroup a) => Semigroup (TaggedTree tag a) where
   a <> b = TaggedTree $ unTaggedTree a Semi.<> unTaggedTree b
+  {-# INLINE (Semi.<>) #-}
 
 instance (Monoid a) => Monoid (TaggedTree tag a) where
   mempty = TaggedTree mempty
   mappend a b = fmap unwrapMonoid $ fmap WrapMonoid a Semi.<> fmap WrapMonoid b
+  {-# INLINE mappend #-}
 
 instance Bitraversable1 TaggedTree where
   bitraverse1 f g = foldTaggedTree (fmap embedTaggedTree . bitraverse1 g (bitraverse1 f id))

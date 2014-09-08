@@ -92,10 +92,12 @@ instance (Semigroup post) => Semigroup (Fenceposted post a) where
     case projectFenceposted b of
       Panel bStart x (Fenceposted rest bEnd) -> Fenceposted (as <> pure (aEnd Semi.<> bStart, x) <> rest) bEnd
       FinalPost bEnd -> Fenceposted as (aEnd Semi.<> bEnd)
+  {-# INLINE (Semi.<>) #-}
 
 instance (Monoid post) => Monoid (Fenceposted post a) where
   mempty = fencepost mempty
   mappend a b = first unwrapMonoid $ first WrapMonoid a Semi.<> first WrapMonoid b
+  {-# INLINE mappend #-}
 
 -- | A \'productish\' instance.
 instance (Semigroup post) => Apply (Fenceposted post) where
@@ -156,6 +158,7 @@ projectFenceposted (Fenceposted xs z) =
   case xs of
     (post, x) : rest -> Panel post x (Fenceposted rest z)
     [] -> FinalPost z
+{-# INLINE projectFenceposted #-}
 
 -- | Alternative \'zippish\' @Apply@/@Applicative@ instance.
 newtype ZipFenceposted post a = ZipFenceposted { getZipFenceposted :: Fenceposted post a }
