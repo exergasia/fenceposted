@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                fenceposted
-version:             0.1.0.4
+version:             0.1.0.5
 synopsis:            Values surrounded by 'fenceposts'
 -- description:         
 homepage:            https://github.com/exergasia/fenceposted

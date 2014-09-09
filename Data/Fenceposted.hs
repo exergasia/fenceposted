@@ -112,17 +112,21 @@ instance Functor (Fenceposted a) where
   fmap f = fmapDefault f
   {-# INLINE fmap #-}
 
+append :: (post -> post -> post) -> Fenceposted post a -> Fenceposted post a -> Fenceposted post a
+append op (Fenceposted as aEnd) (Fenceposted bs bEnd) =
+  case bs of
+    (bStart, b) : bs' -> Fenceposted (as ++ ((aEnd `op` bStart, b) : bs')) bEnd
+    [] -> Fenceposted as (aEnd `op` bEnd)
+{-# INLINE append #-}
+
 instance (Semigroup post) => Semigroup (Fenceposted post a) where
-  Fenceposted as aEnd <> b =
-    case projectFenceposted b of
-      Panel bStart x (Fenceposted rest bEnd) -> Fenceposted (as <> pure (aEnd Semi.<> bStart, x) <> rest) bEnd
-      FinalPost bEnd -> Fenceposted as (aEnd Semi.<> bEnd)
+  (<>) = append (Semi.<>)
   {-# INLINE (Semi.<>) #-}
 
 instance (Monoid post) => Monoid (Fenceposted post a) where
   mempty = fencepost mempty
   {-# INLINE mempty #-}
-  mappend a b = first unwrapMonoid $ first WrapMonoid a Semi.<> first WrapMonoid b
+  mappend = append mappend
   {-# INLINE mappend #-}
 
 -- | A \'productish\' instance.
